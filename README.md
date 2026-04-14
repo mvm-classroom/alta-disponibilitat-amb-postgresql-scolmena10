@@ -5,7 +5,7 @@
 
 ### docker-compose.yml
 
-```
+```yml
 networks:
   ha-net:
     driver: bridge
@@ -92,7 +92,7 @@ CMD ["patroni", "/patroni.yml"]
 
 ### haproxy.cfg
 
-```
+```cfg
 global
     maxconn 100
 
@@ -124,7 +124,7 @@ listen postgres
 
 ### patroni.yml
 
-```
+```yml
 scope: mi_cluster_ha
 namespace: /db/
 restapi:
