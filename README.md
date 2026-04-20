@@ -29,15 +29,7 @@ Es la herramienta que administra el clúster PostgreSQL. Se encarga de:
 
 ### etcd
 Es un almacén clave-valor distribuido. Patroni lo usa para guardar el estado del clúster y coordinar qué nodo debe ser el líder
-## 8. Comprobación de HAProxy
 
-HAProxy publica estadísticas en el puerto `7000`.
-
-Se puede comprobar abriendo en el navegador:
-
-```text
-http://localhost:7000
-```
 ### HAProxy
 Es un proxy. En esta práctica ofrece:
 - acceso al servicio PostgreSQL desde un único puerto (5432)
