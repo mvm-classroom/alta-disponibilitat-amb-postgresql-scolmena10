@@ -1,6 +1,5 @@
 # Alta disponibilidad con PostgreSQL
 ## Santino Colmena
-
 ---
 
 ## 1. ¿Qué se pretende hacer con estos ficheros?
@@ -210,19 +209,15 @@ postgresql:
 
 ### Instalar Docker y herramientas necesarias
 
-```bash
-sudo apt update
-sudo apt install docker.io docker-compose-v2 postgresql-client -y
-```
+santinoc@santinoc:~$ sudo apt update
+santinoc@santinoc:~$ sudo apt install docker.io docker-compose-v2 postgresql-client -y
 
 ### Arrancar el clúster
 
-```bash
 santinoc@santinoc:~/Documents$ cd docker-postgresql/
 santinoc@santinoc:~/Documents/docker-postgresql$ docker compose up -d --build
-```
 
-```
+```bash
 [+] Building 1.8s (10/10) FINISHED                                              
  => [internal] load local bake definitions                                 0.0s
  => => reading from stdin 1.01kB                                           0.0s
@@ -255,7 +250,7 @@ santinoc@santinoc:~/Documents/docker-postgresql$ docker compose up -d --build
 ### Comprobar que los contenedores están levantados
 
 santinoc@santinoc:~/Documents/docker-postgresql$ docker ps
-```
+```bash
 CONTAINER ID   IMAGE                        COMMAND                  CREATED       STATUS          PORTS                                                                                      NAMES
 f3510aa1c45b   haproxy:alpine               "docker-entrypoint.s…"   4 weeks ago   Up 11 seconds   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp, 0.0.0.0:7000->7000/tcp, [::]:7000->7000/tcp   haproxy
 92d2552d3a66   docker-postgresql-pg-2       "docker-entrypoint.s…"   4 weeks ago   Up 12 seconds   5432/tcp                                                                                   pg-2
@@ -264,10 +259,10 @@ b06a9889188b   docker-postgresql-pg-1       "docker-entrypoint.s…"   4 weeks a
 ```
 ## 5. Comprobación del estado del clúster
 
-Para ver el estado del clúster con Patroni:
+**Para ver el estado del clúster con Patroni:**
 
-santinoc@santinoc:~/Documents/docker-postgresql$ docker exec -it pg-1 patronictl -c patroni.yml list
-```
+santinoc@santinoc:~/Documents/docker-postgresql$ docker exec -it pg-1 patronictl -c /patroni.yml list
+```bash
 + Cluster: mi_cluster_ha (7615693839243325460) ----------+-----+------------+-----+
 | Member | Host | Role    | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
 +--------+------+---------+-----------+----+-------------+-----+------------+-----+
@@ -278,9 +273,7 @@ santinoc@santinoc:~/Documents/docker-postgresql$ docker exec -it pg-1 patronictl
 
 ## 6. Comprobación de HAProxy
 
-HAProxy publica estadísticas en el puerto 7000
-
-Se puede comprobar abriendo en el navegador:
+**HAProxy publica estadísticas en el puerto 7000. Se puede comprobar abriendo en el navegador:**
 
 ```text
 http://localhost:7000
@@ -288,4 +281,59 @@ http://localhost:7000
 
 <img width="1919" height="563" alt="imatge" src="https://github.com/user-attachments/assets/7da7eb6e-ce31-41d8-b557-082e6f027b14" />
 
+## 7. Prueba de conexión real con PostgreSQL
 
+**Para comprobar que PostgreSQL responde a través de HAProxy:**
+
+santinoc@santinoc:~$ PGPASSWORD='ScolmenaPg!' psql -h 127.0.0.1 -p 5432 -U postgres -d postgres -c "SELECT now();"
+```bash
+              now              
+-------------------------------
+ 2026-04-20 20:49:28.671644+00
+(1 row)
+```
+
+## 8. Prueba de failover
+
+**Primero se identifica el líder:**
+
+
+santinoc@santinoc:~/Documents/docker-postgresql$ docker exec -it pg-1 patronictl -c /patroni.yml list
+
+```bash
++ Cluster: mi_cluster_ha (7630945813858451476) ----------+-----+------------+-----+
+| Member | Host | Role    | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
++--------+------+---------+-----------+----+-------------+-----+------------+-----+
+| pg-1   | pg-1 | Leader  | running   |  1 |             |     |            |     |
+| pg-2   | pg-2 | Replica | streaming |  1 |   0/304B540 |   0 |  0/304B540 |   0 |
++--------+------+---------+-----------+----+-------------+-----+------------+-----+
+```
+
+**En esta prueba el líder es pg-1, por lo que para comprobar el failover real se detiene el nodo líder pg-1:**
+
+santinoc@santinoc:~/Documents/docker-postgresql$ docker stop pg-1
+
+**Esperamos unos segundos y se volvemos a consultar el estado del clúster desde pg-2:**
+
+santinoc@santinoc:~/Documents/docker-postgresql$ docker exec -it pg-2 patronictl -c /patroni.yml list
+```bash
++ Cluster: mi_cluster_ha (7630945813858451476) ----------+-----+------------+-----+
+| Member | Host | Role   | State   | TL | Receive LSN | Lag | Replay LSN | Lag |
++--------+------+--------+---------+----+-------------+-----+------------+-----+
+| pg-2   | pg-2 | Leader | running |  2 |             |     |            |     |
++--------+------+--------+---------+----+-------------+-----+------------+-----+
+```
+- **pg-2 pasa a ser Leader automáticamente**
+
+**Una vez hecha la prueba, se puede volver a arrancar el nodo parado:**
+
+santinoc@santinoc:~/Documents/docker-postgresql$ docker start pg-1
+santinoc@santinoc:~/Documents/docker-postgresql$ docker exec -it pg-2 patronictl -c /patroni.yml list
+```bash
++ Cluster: mi_cluster_ha (7630945813858451476) ----------+-----+------------+-----+
+| Member | Host | Role    | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
++--------+------+---------+-----------+----+-------------+-----+------------+-----+
+| pg-1   | pg-1 | Replica | streaming |  2 |   0/304B540 |   0 |  0/304B540 |   0 |
+| pg-2   | pg-2 | Leader  | running   |  2 |             |     |            |     |
++--------+------+---------+-----------+----+-------------+-----+------------+-----+
+```
