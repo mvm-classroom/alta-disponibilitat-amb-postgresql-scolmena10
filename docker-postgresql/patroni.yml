@@ -1,0 +1,37 @@
+scope: mi_cluster_ha
+namespace: /db/
+restapi:
+  listen: 0.0.0.0:8008
+etcd:
+  host: etcd:2379
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    postgresql:
+      use_pg_rewind: true
+  initdb:
+    - auth-host: scram-sha-256
+    - auth-local: trust
+    - encoding: UTF8
+  users:
+    admin:
+      password: ScolmenaAdmin
+      options:
+        - createrole
+        - createdb
+postgresql:
+  listen: 0.0.0.0:5432
+  data_dir: /var/lib/postgresql/data/patroni
+  pg_hba:
+    - host replication replicator all scram-sha-256
+    - host all all all scram-sha-256
+  authentication:
+    replication:
+      username: replicator
+      password: "ScolmenaRepl!"
+    superuser:
+      username: postgres
+      password: "ScolmenaPg!"

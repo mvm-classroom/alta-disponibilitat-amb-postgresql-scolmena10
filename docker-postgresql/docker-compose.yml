@@ -1,0 +1,66 @@
+networks:
+  ha-net:
+    driver: bridge
+
+services:
+  # Etcd
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.9
+    container_name: etcd
+    networks:
+      - ha-net
+    environment:
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCD_ENABLE_V2=true
+
+  # Node 1
+  pg-1:
+    build: .
+    container_name: pg-1
+    networks:
+      - ha-net
+    volumes:
+      - ./patroni.yml:/patroni.yml:ro
+      - pg_1_data:/var/lib/postgresql/data
+    environment:
+      - PATRONI_NAME=pg-1
+      - PATRONI_RESTAPI_CONNECT_ADDRESS=pg-1:8008
+      - PATRONI_POSTGRESQL_CONNECT_ADDRESS=pg-1:5432
+    depends_on:
+      - etcd
+
+  # Node 2
+  pg-2:
+    build: .
+    container_name: pg-2
+    networks:
+      - ha-net
+    volumes:
+      - ./patroni.yml:/patroni.yml:ro
+      - pg_2_data:/var/lib/postgresql/data
+    environment:
+      - PATRONI_NAME=pg-2
+      - PATRONI_RESTAPI_CONNECT_ADDRESS=pg-2:8008
+      - PATRONI_POSTGRESQL_CONNECT_ADDRESS=pg-2:5432
+    depends_on:
+      - etcd
+
+  # HAproxy
+  haproxy:
+    image: haproxy:alpine
+    container_name: haproxy
+    ports:
+      - "5432:5432"
+      - "7000:7000"
+    networks:
+      - ha-net
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - pg-1
+      - pg-2
+
+volumes:
+  pg_1_data:
+  pg_2_data:
