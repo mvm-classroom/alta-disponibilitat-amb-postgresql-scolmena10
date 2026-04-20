@@ -3,6 +3,50 @@
 
 ---
 
+## 1. ¿Qué se pretende hacer con estos ficheros?
+
+Con los ficheros proporcionados se pretende construir un entorno de alta disponibilidad donde:
+
+- hay dos nodos PostgreSQL
+- uno actúa como **Leader**
+- el otro actúa como **Replica**
+- Patroni se encarga de la gestión del clúster y del failover
+- etcd guarda el estado del clúster
+- HAProxy redirige las conexiones al nodo que en ese momento es el primario
+
+De esta forma, si el nodo líder falla, el otro nodo puede asumir el rol principal.
+
+---
+
+## 2. Tecnologías utilizadas y para qué sirve cada una
+
+### PostgreSQL
+Es el sistema gestor de bases de datos que se quiere ejecutar en alta disponibilidad.
+
+### Patroni
+Es la herramienta que administra el clúster PostgreSQL. Se encarga de:
+- elegir el nodo líder
+- gestionar la replicación
+- realizar el failover automático si cae el nodo principal
+
+### etcd
+Es un almacén clave-valor distribuido. Patroni lo usa para guardar el estado del clúster y coordinar qué nodo debe ser el líder.
+
+### HAProxy
+Es un proxy/balanceador. En esta práctica ofrece:
+- acceso al servicio PostgreSQL desde un único puerto (`5432`)
+- una interfaz web de estadísticas en el puerto `7000`
+
+### Docker
+Permite ejecutar cada componente dentro de un contenedor.
+
+### Docker Compose
+Permite levantar todos los contenedores del entorno con un solo comando.
+
+---
+
+## 3. Archivos del proyecto
+
 ### docker-compose.yml
 
 ```yml
@@ -145,7 +189,7 @@ bootstrap:
     - encoding: UTF8
   users:
     admin:
-      password: adminpassword
+      password: ScolmenaAdmin_
       options:
         - createrole
         - createdb
@@ -158,15 +202,28 @@ postgresql:
   authentication:
     replication:
       username: replicator
-      password: replicatorpassword
+      password: "ScolmenaRepl_2026!"
     superuser:
       username: postgres
-      password: adminpassword
+      password: "ScolmenaPg_2026!"
 ```
 
-santinoc@santinoc:~/Documents$ cd docker-postgresql/
+## 4. Despliegue del entorno
 
+### Instalar Docker y herramientas necesarias
+
+```bash
+sudo apt update
+sudo apt install docker.io docker-compose-v2 postgresql-client -y
+```
+
+### Arrancar el clúster
+
+```bash
+santinoc@santinoc:~/Documents$ cd docker-postgresql/
 santinoc@santinoc:~/Documents/docker-postgresql$ docker compose up -d --build
+```
+
 ```
 [+] Building 1.8s (10/10) FINISHED                                              
  => [internal] load local bake definitions                                 0.0s
@@ -196,6 +253,9 @@ santinoc@santinoc:~/Documents/docker-postgresql$ docker compose up -d --build
  ✔ Container pg-2               Started                                     0.5s
  ✔ Container haproxy            Started                                     0.4s
 ```
+
+### Comprobar que los contenedores están levantados
+
 santinoc@santinoc:~/Documents/docker-postgresql$ docker ps
 ```
 CONTAINER ID   IMAGE                        COMMAND                  CREATED       STATUS          PORTS                                                                                      NAMES
@@ -204,6 +264,9 @@ f3510aa1c45b   haproxy:alpine               "docker-entrypoint.s…"   4 weeks a
 b06a9889188b   docker-postgresql-pg-1       "docker-entrypoint.s…"   4 weeks ago   Up 12 seconds   5432/tcp                                                                                   pg-1
 59876fab8463   quay.io/coreos/etcd:v3.5.9   "/usr/local/bin/etcd"    4 weeks ago   Up 12 seconds   2379-2380/tcp                                                                              etcd
 ```
+## 5. Comprobación del estado del clúster
+
+Para ver el estado del clúster con Patroni:
 
 santinoc@santinoc:~/Documents/docker-postgresql$ docker exec -it pg-1 patronictl -c patroni.yml list
 ```
@@ -213,6 +276,16 @@ santinoc@santinoc:~/Documents/docker-postgresql$ docker exec -it pg-1 patronictl
 | pg-1   | pg-1 | Replica | streaming |  6 |   0/50002D0 |   0 |  0/50002D0 |   0 |
 | pg-2   | pg-2 | Leader  | running   |  6 |             |     |            |     |
 +--------+------+---------+-----------+----+-------------+-----+------------+-----+
+```
+
+## 6. Comprobación de HAProxy
+
+HAProxy publica estadísticas en el puerto `7000`.
+
+Se puede comprobar abriendo en el navegador:
+
+```text
+http://localhost:7000
 ```
 
 <img width="1919" height="563" alt="imatge" src="https://github.com/user-attachments/assets/7da7eb6e-ce31-41d8-b557-082e6f027b14" />
