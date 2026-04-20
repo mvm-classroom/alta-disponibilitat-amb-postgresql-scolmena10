@@ -210,11 +210,13 @@ postgresql:
 ### Instalar Docker y herramientas necesarias
 
 santinoc@santinoc:~$ sudo apt update
+
 santinoc@santinoc:~$ sudo apt install docker.io docker-compose-v2 postgresql-client -y
 
 ### Arrancar el clúster
 
 santinoc@santinoc:~/Documents$ cd docker-postgresql/
+
 santinoc@santinoc:~/Documents/docker-postgresql$ docker compose up -d --build
 
 ```bash
@@ -328,6 +330,7 @@ santinoc@santinoc:~/Documents/docker-postgresql$ docker exec -it pg-2 patronictl
 **Una vez hecha la prueba, se puede volver a arrancar el nodo parado:**
 
 santinoc@santinoc:~/Documents/docker-postgresql$ docker start pg-1
+
 santinoc@santinoc:~/Documents/docker-postgresql$ docker exec -it pg-2 patronictl -c /patroni.yml list
 ```bash
 + Cluster: mi_cluster_ha (7630945813858451476) ----------+-----+------------+-----+
