@@ -189,7 +189,7 @@ bootstrap:
     - encoding: UTF8
   users:
     admin:
-      password: ScolmenaAdmin_
+      password: ScolmenaAdmin
       options:
         - createrole
         - createdb
@@ -202,10 +202,10 @@ postgresql:
   authentication:
     replication:
       username: replicator
-      password: "ScolmenaRepl_2026!"
+      password: "ScolmenaRepl!"
     superuser:
       username: postgres
-      password: "ScolmenaPg_2026!"
+      password: "ScolmenaPg!"
 ```
 
 ## 4. Despliegue del entorno
