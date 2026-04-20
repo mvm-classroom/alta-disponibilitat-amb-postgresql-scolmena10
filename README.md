@@ -14,8 +14,6 @@ Con los ficheros proporcionados se pretende construir un entorno de alta disponi
 - etcd guarda el estado del clúster
 - HAProxy redirige las conexiones al nodo que en ese momento es el primario
 
-De esta forma, si el nodo líder falla, el otro nodo puede asumir el rol principal.
-
 ---
 
 ## 2. Tecnologías utilizadas y para qué sirve cada una
